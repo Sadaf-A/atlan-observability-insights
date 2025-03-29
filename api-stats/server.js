@@ -5,8 +5,11 @@ const mongoose = require('mongoose');
 const WebSocket = require('ws');
 const axios = require('axios');
 require('dotenv').config();
+const { trace } = require('@opentelemetry/api');
+const Trace = require('./models/Trace');
+const { v4: uuidv4 } = require('uuid');
+const traceRequest  = require('./httpTracer');
 
-// Enhanced logging
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -20,26 +23,61 @@ const logger = winston.createLogger({
     ]
 });
 
-// WebSocket Server with error handling
 const wss = new WebSocket.Server({ port: 8080 });
 const clients = new Set();
 
-wss.on('connection', (ws) => {
-    logger.info('WebSocket client connected');
+wss.on("connection", (ws) => {
+    const traceId = uuidv4();
+    const spanId = uuidv4();
+    const startTime = new Date();
+
+    logger.info("WebSocket client connected");
     clients.add(ws);
 
-    ws.on('error', (error) => {
-        logger.error('WebSocket error:', error);
+    // Store connection trace
+    const newTrace = new Trace({
+        traceId,
+        createdAt: startTime,
+        spans: [
+            {
+                spanId,
+                parentSpanId: null,
+                serviceName: "websocket-server",
+                operationName: "WebSocket Connection",
+                startTime,
+                endTime: null, // Will be updated on disconnect
+                duration: 0,
+                tags: { status: "connected" },
+                logs: [],
+            },
+        ],
+    });
+
+    newTrace.save();
+
+    ws.on("error", (error) => {
+        logger.error("WebSocket error:", error);
         clients.delete(ws);
     });
 
-    ws.on('close', () => {
+    ws.on("close", async () => {
         clients.delete(ws);
-        logger.info('WebSocket client disconnected');
+        logger.info("WebSocket client disconnected");
+
+        await Trace.updateOne(
+            { traceId },
+            {
+                $set: {
+                    "spans.0.endTime": new Date(),
+                    "spans.0.duration": Date.now() - startTime.getTime(),
+                    "spans.0.tags.status": "disconnected",
+                },
+            }
+        );
     });
 });
 
-// Broadcast with error handling
+
 const broadcast = (data) => {
     clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
@@ -53,7 +91,6 @@ const broadcast = (data) => {
     });
 };
 
-// Improved MongoDB connection with reconnection and error handling
 mongoose.connect(process.env.MONGO_URI, { 
     useNewUrlParser: true, 
     useUnifiedTopology: true,
@@ -69,7 +106,6 @@ db.once('open', () => {
     logger.info('Connected to MongoDB');
 });
 
-// Enhanced metric schema with validation
 const metricSchema = new mongoose.Schema({
     method: { 
         type: String, 
@@ -88,7 +124,7 @@ const metricSchema = new mongoose.Schema({
     },
     status: { 
         type: Number, 
-        required: true,
+        required: false,
         min: 100,
         max: 599
     },
@@ -100,7 +136,7 @@ const metricSchema = new mongoose.Schema({
     timestamp: { 
         type: Date, 
         default: Date.now,
-        expires: '24h' // Automatically remove after 24 hours
+        expires: '24h' 
     },
     error: {
         type: String,
@@ -114,7 +150,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Centralized request tracking
+app.use(async (req, res, next) => {
+    const traceId = req.headers['x-trace-id'] || uuidv4();
+    const spanId = uuidv4();
+    const startTime = Date.now();
+
+    res.on('finish', async () => {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+
+        const trace = await Trace.findOneAndUpdate(
+            { traceId },
+            {
+                $push: {
+                    spans: {
+                        spanId,
+                        parentSpanId: null, 
+                        serviceName: "api-service",
+                        operationName: req.method + " " + req.url,
+                        startTime: new Date(startTime),
+                        endTime: new Date(endTime),
+                        duration,
+                        tags: { statusCode: res.statusCode }
+                    }
+                }
+            },
+            { upsert: true, new: true }
+        );
+    });
+
+    req.traceId = traceId;
+    req.spanId = spanId;
+    next();
+});
+
 class RequestTracker {
     constructor() {
         this.requestTypeMetrics = {
@@ -185,23 +254,26 @@ class UrlMonitor {
 
     async checkUrl() {
         if (!this.monitoredUrl) return;
-
+    
         const start = Date.now();
         const methods = ['GET', 'POST'];
         const method = methods[Math.round(Math.random())];
-
         requestTracker.incrementCount(method);
-
+    
         try {
+            let response;
             if (method === 'GET') {
-                response = await axios.get(monitoredUrl);
-            } else if (method === 'POST') {a
+                console.log("url: " + this.monitoredUrl);
+                console.log(this.monitoredUrl);
+                response = await traceRequest(method, this.monitoredUrl);
+            } else if (method === 'POST') {
                 const postData = { key1: 'value1', key2: 'value2' };
-                response = await axios.post(monitoredUrl, postData);
+                console.log("url: " + this.monitoredUrl);
+                response = await traceRequest(method, this.monitoredUrl, postData);
             }
-
+    
             const duration = (Date.now() - start) / 1000;
-
+    
             const metric = new Metric({
                 method,
                 route: this.monitoredUrl,
@@ -209,26 +281,26 @@ class UrlMonitor {
                 latency: duration,
                 timestamp: new Date()
             });
-
+    
             await metric.save();
-
+    
             const latestMetrics = await Metric.find({ route: this.monitoredUrl })
                 .sort({ timestamp: -1 })
                 .limit(20);
-
+    
             broadcast({
                 metrics: latestMetrics,
-                requestStats: requestTracker.getStats()
+                requestStats: requestTracker.getStats(),
+                resourceMetrics: response.metrics
             });
-
+    
             logger.info(`✅ ${this.monitoredUrl} - ${response.status} - ${duration}s`);
         } catch (error) {
             const duration = (Date.now() - start) / 1000;
             const status = error.response ? error.response.status : 500;
-
+    
             requestTracker.incrementErrors(method);
-
-            // Create and save error metric
+    
             const metric = new Metric({
                 method,
                 route: this.monitoredUrl,
@@ -237,22 +309,22 @@ class UrlMonitor {
                 timestamp: new Date(),
                 error: error.message
             });
-
+    
             await metric.save();
-
-            // Broadcast error metrics and request stats
+    
             const latestMetrics = await Metric.find({ route: this.monitoredUrl })
                 .sort({ timestamp: -1 })
                 .limit(20);
-
+    
             broadcast({
                 metrics: latestMetrics,
                 requestStats: requestTracker.getStats()
             });
-
+    
             logger.error(`❌ ${this.monitoredUrl} - ERROR ${status} - ${duration}s`, error);
         }
     }
+    
 
     stopMonitoring() {
         if (this.monitoringInterval) {
@@ -265,39 +337,78 @@ class UrlMonitor {
 
 const urlMonitor = new UrlMonitor();
 
-// Routes
-app.post("/api/set-url", async (req, res) => {
+app.get("/api/traces", async (req, res) => {
+    try {
+        const { monitoredUrl } = req.query;
+        if (!monitoredUrl) return res.status(400).json({ error: "monitoredUrl is required" });
+
+        const traces = await Trace.find({ "spans.operationName": new RegExp(monitoredUrl, "i") }).sort({ createdAt: -1 });
+        res.json(traces);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/metrics', async (req, res) => {
+    const tracer = trace.getTracer('api-metrics');
+    const span = tracer.startSpan('Fetch API Metrics');
+
+    try {
+        const metrics = await Metric.find().sort({ timestamp: -1 }).limit(100);
+        res.json(metrics);
+    } catch (error) {
+        span.recordException(error);
+        res.status(500).json({ error: 'Failed to fetch metrics' });
+    } finally {
+        span.end(); 
+    }
+});
+
+app.get('/api/request-stats', (req, res) => {
+    const tracer = trace.getTracer('api-request-stats');
+    const span = tracer.startSpan('Fetch Request Stats');
+
+    try {
+        res.json(requestTracker.getStats());
+    } catch (error) {
+        span.recordException(error);
+        res.status(500).json({ error: 'Failed to fetch request stats' });
+    } finally {
+        span.end();
+    }
+});
+
+app.post('/api/stop-monitoring', (req, res) => {
+    const tracer = trace.getTracer('api-stop-monitoring');
+    const span = tracer.startSpan('Stop Monitoring');
+
+    try {
+        urlMonitor.stopMonitoring();
+        res.json({ message: 'Monitoring stopped' });
+    } catch (error) {
+        span.recordException(error);
+        res.status(500).json({ error: 'Failed to stop monitoring' });
+    } finally {
+        span.end();
+    }
+});
+
+app.post('/api/set-url', async (req, res) => {
+    const tracer = trace.getTracer('api-set-url');
+    const span = tracer.startSpan('Set Monitoring URL');
+
     try {
         const { url } = req.body;
         await urlMonitor.setUrl(url);
         res.json({ message: `Monitoring ${url}` });
     } catch (error) {
+        span.recordException(error);
         res.status(400).json({ error: error.message });
+    } finally {
+        span.end();
     }
 });
 
-app.get('/api/metrics', async (req, res) => {
-    try {
-        const metrics = await Metric.find()
-            .sort({ timestamp: -1 })
-            .limit(100);
-        res.json(metrics);
-    } catch (error) {
-        logger.error('Error fetching metrics:', error);
-        res.status(500).json({ error: 'Failed to fetch metrics' });
-    }
-});
-
-app.get('/api/request-stats', (req, res) => {
-    res.json(requestTracker.getStats());
-});
-
-app.post('/api/stop-monitoring', (req, res) => {
-    urlMonitor.stopMonitoring();
-    res.json({ message: 'Monitoring stopped' });
-});
-
-// Graceful shutdown
 process.on('SIGTERM', () => {
     logger.info('SIGTERM signal received. Closing HTTP server.');
     urlMonitor.stopMonitoring();
@@ -308,6 +419,90 @@ process.on('SIGTERM', () => {
             process.exit(0);
         });
     });
+});
+
+app.post("/api/diagnose", async (req, res) => {
+    try {
+        const { monitoredUrl } = req.body;
+        if (!monitoredUrl) {
+            return res.status(400).json({ error: "monitoredUrl is required." });
+        }
+
+        const logs = await Trace.find({ "spans.operationName": new RegExp(monitoredUrl, "i") }).sort({ createdAt: -1 });
+
+        if (logs.length === 0) {
+            return res.json({ diagnosis: "No logs found for this URL." });
+        }
+
+        const formattedLogs = logs.map(log => 
+            log.spans.map(span => 
+                `Operation: ${span.operationName}, Status: ${span.tags.statusCode}, Duration: ${span.duration}ms`
+            ).join("\n")
+        ).join("\n\n");
+
+
+      const response = await axios.post(
+        process.env.COHERE_API_URL,
+        {
+          model: 'command-a-03-2025', 
+          messages: [
+            {
+              role: 'user',
+              content: `Your Response. Should be crisp and clear and you have to sound professional. Format your answer as well. Read the following logs and provide a diagnosis for this service these logs are for http requests made on this server ${formattedLogs} If you feel like there are no issues say it looks healthy.`,
+            },
+          ],
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const aiResponse = response.data?.message?.content[0]?.text || 'No response from AI';
+      
+        res.json({ aiResponse });
+
+    } catch (error) {
+        console.error("Diagnosis Error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+const performanceSchema = new mongoose.Schema({
+    timestamp: { type: Date, required: true },
+    avgResponseTime: { type: Number, required: true },
+    errorRate: { type: Number, required: true }
+});
+
+const Performance = mongoose.model("Performance", performanceSchema);
+
+app.get("/api/seed", async (req, res) => {
+    await Performance.deleteMany({});
+    await Performance.insertMany([
+        { timestamp: new Date("2025-03-22T12:00:00Z"), avgResponseTime: 120, errorRate: 0.05 },
+        { timestamp: new Date("2025-03-23T12:00:00Z"), avgResponseTime: 135, errorRate: 0.07 },
+        { timestamp: new Date("2025-03-24T12:00:00Z"), avgResponseTime: 110, errorRate: 0.04 }
+    ]);
+    res.send({ message: "Seeded data!" });
+});
+
+app.get("/api/performance", async (req, res) => {
+    try {
+        const range = req.query.range || "7d";
+        const startDate = new Date();
+        if (range === "30d") startDate.setDate(startDate.getDate() - 30);
+        else if (range === "90d") startDate.setDate(startDate.getDate() - 90);
+        else startDate.setDate(startDate.getDate() - 7);
+
+        const data = await Performance.find({ timestamp: { $gte: startDate } }).sort({ timestamp: 1 });
+
+        res.json(data);
+    } catch (error) {
+        console.error("Error fetching performance data:", error);
+        res.status(500).json({ message: "Server error" });
+    }
 });
 
 const port = process.env.PORT || 5000;

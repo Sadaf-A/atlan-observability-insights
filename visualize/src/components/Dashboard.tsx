@@ -33,10 +33,24 @@ interface RequestStats {
     PATCH: { count: number; errors: number };
 }
 
+interface ResourceMetrics {
+    memory: {
+        rss: number;
+        heapTotal: number;
+        heapUsed: number;
+        external: number;
+    };
+    cpu: {
+        loadAvg1min: number;
+    };
+}
+
 interface WebSocketMessage {
     metrics: Metric[];
     requestStats: RequestStats;
+    resourceMetrics?: ResourceMetrics;
 }
+
 
 const Dashboard: React.FC = () => {
     const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -48,12 +62,12 @@ const Dashboard: React.FC = () => {
         DELETE: { count: 0, errors: 0 },
         PATCH: { count: 0, errors: 0 },
     });
+    const [resourceMetrics, setResourceMetrics] = useState<ResourceMetrics | null>(null);
     const [monitoredUrl, setMonitoredUrl] = useState<string>(localStorage.getItem("monitoredUrl") || "");
     const [inputUrl, setInputUrl] = useState<string>("");
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
 
-    // Transform metrics for charting (reverse the data to show latest values on the right)
     const latencyChartData = metrics.map((metric) => ({
         name: metric.timestamp ? new Date(metric.timestamp).toLocaleTimeString() : "",
         latency: metric.latency,
@@ -62,8 +76,16 @@ const Dashboard: React.FC = () => {
 
     const errorData = Object.entries(requestStats).map(([method, stats]) => ({
         method,
-        errorRate: stats.count > 0 ? (stats.errors / stats.count) * 100 : 0, // Percentage
+        errorRate: stats.count > 0 ? (stats.errors / stats.count) * 100 : 0, 
     }));
+
+    const resourceChartData = resourceMetrics ? [
+        { name: "RSS", value: resourceMetrics.memory.rss },
+        { name: "Heap Total", value: resourceMetrics.memory.heapTotal },
+        { name: "Heap Used", value: resourceMetrics.memory.heapUsed },
+        { name: "External", value: resourceMetrics.memory.external },
+        { name: "CPU Load (1min)", value: resourceMetrics.cpu.loadAvg1min }
+    ] : [];
 
         useEffect(() => {
             const methodLatencies = metrics.reduce((acc, metric) => {
@@ -107,6 +129,10 @@ const Dashboard: React.FC = () => {
                 if (data.requestStats) {
                     setRequestStats(data.requestStats);
                 }
+
+                if (data.resourceMetrics) {
+                    setResourceMetrics(data.resourceMetrics);
+                }
             } catch (error) {
                 toast.error("Error parsing WebSocket message");
                 console.error("WebSocket message parsing error:", error);
@@ -143,7 +169,6 @@ const Dashboard: React.FC = () => {
         try {
             new URL(inputUrl);
 
-            // Reset state
             setMetrics([]);
             setRequestStats({
                 GET: { count: 0, errors: 0 },
@@ -171,7 +196,6 @@ const Dashboard: React.FC = () => {
         try {
             await axios.post(`http://localhost:5000/api/stop-monitoring`);
             
-            // Reset state
             setMonitoredUrl("");
             setMetrics([]);
             setRequestStats({
@@ -273,6 +297,17 @@ const Dashboard: React.FC = () => {
     </ResponsiveContainer>
 </div>
                     </div>
+                    <div className="border p-4 rounded">
+                            <h3 className="text-lg font-semibold mb-2">System Resource Usage</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={resourceChartData}>
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="value" fill="#00C49F" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                 </div>
             )}
 
