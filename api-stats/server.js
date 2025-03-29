@@ -94,7 +94,7 @@ const broadcast = (data) => {
 mongoose.connect(process.env.MONGO_URI, { 
     useNewUrlParser: true, 
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 5001,
     retryWrites: true
 });
 
@@ -505,7 +505,7 @@ app.get("/api/performance", async (req, res) => {
     }
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 const server = app.listen(port, () => {
     logger.info(`🚀 Server running on port ${port}`);
 });
