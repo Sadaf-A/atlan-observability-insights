@@ -348,77 +348,108 @@ const Dashboard: React.FC = () => {
                         </button>
                     </div>
                     
-                    <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: "24px"
-                    }}>
-                        <input
-                            type="text"
-                            style={{
-                                flex: 1,
-                                padding: "12px 16px",
-                                fontSize: "14px",
-                                borderRadius: "8px",
-                                border: `1px solid ${currentTheme.inputBorder}`,
-                                backgroundColor: currentTheme.inputBackground,
-                                color: currentTheme.text,
-                                outline: "none",
-                                transition: "all 0.2s ease"
-                            }}
-                            value={inputUrl}
-                            onChange={(e) => setInputUrl(e.target.value)}
-                            placeholder="Enter URL to monitor"
-                        />
-                        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                        {endpoints.map((endpoint, index) => (
-        <div key={index} style={{ display: "flex", gap: "8px" }}>
-            <select
-                value={endpoint.method}
-                onChange={(e) => handleEndpointChange(index, "method", e.target.value)}
-                style={{ padding: "8px", borderRadius: "8px", border: "1px solid #ccc" }}
-            >
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-                <option value="PATCH">PATCH</option>
-            </select>
-            <input
-                type="text"
-                style={{ padding: "12px", borderRadius: "8px", border: "1px solid #ccc", flex: 1 }}
-                value={endpoint.path}
-                onChange={(e) => handleEndpointChange(index, "path", e.target.value)}
-                placeholder="Enter endpoint (e.g., /users, /orders)"
-            />
-        </div>
-    ))}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <input
+            type="text"
+            style={{
+                flex: 1,
+                padding: "12px 16px",
+                fontSize: "14px",
+                borderRadius: "8px",
+                border: `1px solid ${currentTheme.inputBorder}`,
+                backgroundColor: currentTheme.inputBackground,
+                color: currentTheme.text,
+                outline: "none",
+                transition: "all 0.2s ease"
+            }}
+            value={inputUrl}
+            onChange={(e) => setInputUrl(e.target.value)}
+            placeholder="Enter base URL to monitor (e.g., https://api.example.com)"
+        />
+        <button 
+            style={{
+                display: "flex",
+                alignItems: "center",
+                backgroundColor: currentTheme.primary,
+                color: "#FFFFFF",
+                border: "none",
+                padding: "12px 16px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: 600,
+                transition: "all 0.2s ease"
+            }} 
+            onClick={handleSetUrl}
+        >
+            Start Monitoring
+        </button>
+    </div>
 
-    <button onClick={handleAddEndpoint} style={{ padding: "8px", borderRadius: "8px", backgroundColor: "#007bff", color: "#fff" }}>
-        + Add Endpoint
-    </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {endpoints.map((endpoint, index) => (
+            <div key={index} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <select
+                    value={endpoint.method}
+                    onChange={(e) => handleEndpointChange(index, "method", e.target.value)}
+                    style={{
+                        padding: "12px",
+                        borderRadius: "8px",
+                        border: `1px solid ${currentTheme.inputBorder}`,
+                        backgroundColor: currentTheme.inputBackground,
+                        color: currentTheme.text,
+                        outline: "none",
+                        minWidth: "120px",
+                        cursor: "pointer"
+                    }}
+                >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                </select>
+                <input
+                    type="text"
+                    style={{ 
+                        flex: 1,
+                        padding: "12px 16px",
+                        fontSize: "14px",
+                        borderRadius: "8px",
+                        border: `1px solid ${currentTheme.inputBorder}`,
+                        backgroundColor: currentTheme.inputBackground,
+                        color: currentTheme.text,
+                        outline: "none",
+                        transition: "all 0.2s ease"
+                    }}
+                    value={endpoint.path}
+                    onChange={(e) => handleEndpointChange(index, "path", e.target.value)}
+                    placeholder="Enter endpoint path (e.g., /users, /orders)"
+                />
+                {index === endpoints.length - 1 && (
+                    <button 
+                        onClick={handleAddEndpoint} 
+                        style={{
+                            padding: "12px 16px",
+                            borderRadius: "8px",
+                            backgroundColor: currentTheme.secondary,
+                            color: "#FFFFFF",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            transition: "all 0.2s ease",
+                            whiteSpace: "nowrap"
+                        }}
+                    >
+                        + Add Endpoint
+                    </button>
+                )}
+            </div>
+        ))}
+    </div>
 </div>
-
-                        <button 
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                backgroundColor: currentTheme.primary,
-                                color: "#FFFFFF",
-                                border: "none",
-                                padding: "12px 16px",
-                                borderRadius: "8px",
-                                marginLeft: "12px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                fontWeight: 600,
-                                transition: "all 0.2s ease"
-                            }} 
-                            onClick={handleSetUrl}
-                        >
-                            Start Monitoring
-                        </button>
-                    </div>
                     
                     {isMonitoring && (
                         <div>
