@@ -10,6 +10,24 @@ const Trace = require('./models/Trace');
 const { v4: uuidv4 } = require('uuid');
 const traceRequest  = require('./httpTracer');
 
+mongoose.connection.on('error', (error) => {
+    console.error('MongoDB connection error:', error);
+    process.exit(1); 
+});
+
+mongoose.connection.once('open', () => {
+    console.log('Connected to MongoDB');
+});
+
+async function connect() {
+    await mongoose.connect(process.env.MONGO_URI, { 
+        useNewUrlParser: true, 
+        useUnifiedTopology: true,
+    });
+}
+
+connect();
+
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -34,7 +52,6 @@ wss.on("connection", (ws) => {
     logger.info("WebSocket client connected");
     clients.add(ws);
 
-    // Store connection trace
     const newTrace = new Trace({
         traceId,
         createdAt: startTime,
@@ -45,7 +62,7 @@ wss.on("connection", (ws) => {
                 serviceName: "websocket-server",
                 operationName: "WebSocket Connection",
                 startTime,
-                endTime: null, // Will be updated on disconnect
+                endTime: null,
                 duration: 0,
                 tags: { status: "connected" },
                 logs: [],
@@ -90,13 +107,6 @@ const broadcast = (data) => {
         }
     });
 };
-
-mongoose.connect(process.env.MONGO_URI, { 
-    useNewUrlParser: true, 
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5001,
-    retryWrites: true
-});
 
 const db = mongoose.connection;
 db.on('error', (error) => {
@@ -448,7 +458,7 @@ app.post("/api/diagnose", async (req, res) => {
           messages: [
             {
               role: 'user',
-              content: `Your Response. Should be crisp and clear and you have to sound professional. Format your answer as well. Read the following logs and provide a diagnosis for this service these logs are for http requests made on this server ${formattedLogs} If you feel like there are no issues say it looks healthy.`,
+              content: `Analyze these HTTP request logs: ${formattedLogs}. Identify errors, anomalies, or performance issues. If everything looks normal, state that the service is healthy. Keep the response concise and professional.`,
             },
           ],
         },

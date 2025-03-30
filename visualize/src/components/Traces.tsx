@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Moon, Sun, RefreshCw, Search, AlertTriangle, CheckCircle, Activity } from "lucide-react";
-
+import ReactMarkdown from "react-markdown";
 // Type definitions
 interface Span {
     spanId: string;
@@ -379,12 +379,7 @@ export default function TraceViewer() {
                                 marginBottom: "8px",
                                 color: currentTheme.text
                             }}>Diagnosis Report</h3>
-                            <p style={{
-                                whiteSpace: "pre-wrap",
-                                margin: 0,
-                                fontSize: "14px",
-                                lineHeight: 1.5
-                            }}>{diagnosis}</p>
+                            <ReactMarkdown>{diagnosis}</ReactMarkdown>
                         </div>
                     )}
                     

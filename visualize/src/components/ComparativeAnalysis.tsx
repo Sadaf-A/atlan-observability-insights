@@ -65,7 +65,7 @@ export default function ComparativeAnalysis() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get("http://localhost:5001/api/performance", {
+      const { data } = await axios.get("http://localhost:5000/api/performance", {
         params: { range: dateRange },
       });
       const baseline = data.map((item: PerformanceData) => ({

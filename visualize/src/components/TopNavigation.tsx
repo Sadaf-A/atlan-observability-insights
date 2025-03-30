@@ -4,7 +4,6 @@ import styled from "@emotion/styled";
 import { useTheme } from "../context/ThemeContext";
 import { Activity, BarChart2, GitCompare, ListTree, Moon, Sun, Menu } from "lucide-react";
 
-// Type definitions
 type ThemeMode = 'light' | 'dark';
 
 interface ThemeColors {
