@@ -2,9 +2,17 @@ import React, { useState, useCallback } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import styled from "@emotion/styled";
 import { useTheme } from "../context/ThemeContext";
-import { Activity, BarChart2, GitCompare, ListTree, Moon, Sun, Menu } from "lucide-react";
+import {
+  Activity,
+  BarChart2,
+  GitCompare,
+  ListTree,
+  Moon,
+  Sun,
+  Menu,
+} from "lucide-react";
 
-type ThemeMode = 'light' | 'dark';
+type ThemeMode = "light" | "dark";
 
 interface ThemeColors {
   background: string;
@@ -38,7 +46,7 @@ const themes: Record<ThemeMode, ThemeColors> = {
     error: "#FF5630",
     success: "#36B37E",
     navHover: "#EBECF0",
-    navActive: "#DEEBFF"
+    navActive: "#DEEBFF",
   },
   dark: {
     background: "#0D1117",
@@ -51,21 +59,25 @@ const themes: Record<ThemeMode, ThemeColors> = {
     error: "#FF5630",
     success: "#36B37E",
     navHover: "#1C2128",
-    navActive: "#0C2D6B"
-  }
+    navActive: "#0C2D6B",
+  },
 };
 
 const navigationItems: NavigationItem[] = [
   { path: "/dashboard", name: "Dashboard", icon: <BarChart2 size={18} /> },
   { path: "/traces", name: "Trace Viewer", icon: <ListTree size={18} /> },
-  { path: "/compare", name: "Comparative Analysis", icon: <GitCompare size={18} /> }
+  {
+    path: "/compare",
+    name: "Comparative Analysis",
+    icon: <GitCompare size={18} />,
+  },
 ];
 
 const HeaderContainer = styled.header<{ themeColors: ThemeColors }>`
   background-color: ${({ themeColors }) => themeColors.cardBackground};
   border-bottom: 1px solid ${({ themeColors }) => themeColors.inputBorder};
   padding: 0 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 const DesktopNav = styled.nav`
@@ -91,7 +103,8 @@ const MobileNav = styled.nav`
   display: flex;
   flex-direction: column;
   padding: 16px;
-  border-top: 1px solid ${({ theme }: { theme: ThemeColors }) => theme.inputBorder};
+  border-top: 1px solid
+    ${({ theme }: { theme: ThemeColors }) => theme.inputBorder};
 `;
 
 const NavItem = styled(NavLink)<{ themeColors: ThemeColors }>`
@@ -116,48 +129,62 @@ const NavItem = styled(NavLink)<{ themeColors: ThemeColors }>`
 const TopNavigation: React.FC = () => {
   const [darkMode, setDarkMode] = useState<ThemeMode>(() => {
     const savedTheme = localStorage.getItem("theme");
-    return savedTheme === "dark" || 
-      (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) 
-      ? "dark" : "light";
+    return savedTheme === "dark" ||
+      (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ? "dark"
+      : "light";
   });
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const currentTheme = themes[darkMode];
 
   const toggleTheme = useCallback(() => {
-    const newTheme = darkMode === 'light' ? 'dark' : 'light';
+    const newTheme = darkMode === "light" ? "dark" : "light";
     setDarkMode(newTheme);
     localStorage.setItem("theme", newTheme);
   }, [darkMode]);
 
   const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
+    setMobileMenuOpen((prev) => !prev);
   }, []);
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      minHeight: "100vh",
-      backgroundColor: currentTheme.background,
-      color: currentTheme.text
-    }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        backgroundColor: currentTheme.background,
+        color: currentTheme.text,
+      }}
+    >
       <HeaderContainer themeColors={currentTheme}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          height: "64px"
-        }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: "64px",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center" }}>
-            <Activity size={24} style={{ marginRight: "12px", color: currentTheme.primary }} />
-            <span style={{ fontSize: "18px", fontWeight: 600, marginRight: "40px" }}>
+            <Activity
+              size={24}
+              style={{ marginRight: "12px", color: currentTheme.primary }}
+            />
+            <span
+              style={{ fontSize: "18px", fontWeight: 600, marginRight: "40px" }}
+            >
               API Monitor
             </span>
-            
+
             <DesktopNav>
               {navigationItems.map((item) => (
-                <NavItem key={item.path} to={item.path} themeColors={currentTheme}>
+                <NavItem
+                  key={item.path}
+                  to={item.path}
+                  themeColors={currentTheme}
+                >
                   <span style={{ marginRight: "8px" }}>{item.icon}</span>
                   {item.name}
                 </NavItem>
@@ -169,17 +196,17 @@ const TopNavigation: React.FC = () => {
             <button
               onClick={toggleTheme}
               style={{
-                backgroundColor: 'transparent',
+                backgroundColor: "transparent",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: currentTheme.text,
-                marginRight: "16px"
+                marginRight: "16px",
               }}
             >
-              {darkMode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              {darkMode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
             <MobileMenuButton onClick={toggleMobileMenu}>
@@ -191,7 +218,12 @@ const TopNavigation: React.FC = () => {
         {mobileMenuOpen && (
           <MobileNav theme={currentTheme}>
             {navigationItems.map((item) => (
-              <NavItem key={item.path} to={item.path} onClick={toggleMobileMenu} themeColors={currentTheme}>
+              <NavItem
+                key={item.path}
+                to={item.path}
+                onClick={toggleMobileMenu}
+                themeColors={currentTheme}
+              >
                 <span style={{ marginRight: "12px" }}>{item.icon}</span>
                 {item.name}
               </NavItem>
@@ -200,11 +232,13 @@ const TopNavigation: React.FC = () => {
         )}
       </HeaderContainer>
 
-      <main style={{
-        flex: 1,
-        padding: "24px",
-        overflow: "auto"
-      }}>
+      <main
+        style={{
+          flex: 1,
+          padding: "24px",
+          overflow: "auto",
+        }}
+      >
         <Outlet />
       </main>
     </div>

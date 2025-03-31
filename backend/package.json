@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -29,5 +30,8 @@
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "prettier": "3.5.3"
   }
 }

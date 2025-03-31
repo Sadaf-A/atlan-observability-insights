@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 // Color themes inspired by atlan
 const themes = {
@@ -13,7 +21,7 @@ const themes = {
     inputBorder: "#DFE1E6",
     inputBackground: "#FFFFFF",
     error: "#FF5630",
-    success: "#36B37E"
+    success: "#36B37E",
   },
   dark: {
     background: "#0D1117",
@@ -24,8 +32,8 @@ const themes = {
     inputBorder: "#30363D",
     inputBackground: "#21262D",
     error: "#FF5630",
-    success: "#36B37E"
-  }
+    success: "#36B37E",
+  },
 };
 
 interface PerformanceData {
@@ -40,19 +48,22 @@ export default function ComparativeAnalysis() {
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState("7d");
   const [darkMode, setDarkMode] = useState(false);
-  
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+    if (
+      savedTheme === "dark" ||
+      (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) {
       setDarkMode(true);
     }
   }, []);
-  
+
   const toggleTheme = () => {
     setDarkMode(!darkMode);
     localStorage.setItem("theme", !darkMode ? "dark" : "light");
   };
-  
+
   const currentTheme = darkMode ? themes.dark : themes.light;
 
   useEffect(() => {
@@ -62,9 +73,12 @@ export default function ComparativeAnalysis() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get("http://localhost:5000/api/performance", {
-        params: { range: dateRange },
-      });
+      const { data } = await axios.get(
+        "http://localhost:5000/api/performance",
+        {
+          params: { range: dateRange },
+        },
+      );
       const baseline = data.map((item: PerformanceData) => ({
         ...item,
         avgResponseTime: item.avgResponseTime * 1.2,
@@ -79,40 +93,50 @@ export default function ComparativeAnalysis() {
   };
 
   return (
-    <div style={{
-      ...containerStyle,
-      backgroundColor: currentTheme.background,
-      color: currentTheme.text,
-      transition: "all 0.3s ease"
-    }}>
-      <div style={{
-        ...cardStyle,
-        backgroundColor: currentTheme.cardBackground,
-        boxShadow: `0 4px 20px rgba(0,0,0,${darkMode ? '0.4' : '0.1'})`,
-      }}>
+    <div
+      style={{
+        ...containerStyle,
+        backgroundColor: currentTheme.background,
+        color: currentTheme.text,
+        transition: "all 0.3s ease",
+      }}
+    >
+      <div
+        style={{
+          ...cardStyle,
+          backgroundColor: currentTheme.cardBackground,
+          boxShadow: `0 4px 20px rgba(0,0,0,${darkMode ? "0.4" : "0.1"})`,
+        }}
+      >
         <div style={headerStyle}>
-          <h2 style={{
-            ...titleStyle,
-            color: currentTheme.text
-          }}>Comparative Analysis</h2>
-          <button 
-            onClick={toggleTheme} 
+          <h2
+            style={{
+              ...titleStyle,
+              color: currentTheme.text,
+            }}
+          >
+            Comparative Analysis
+          </h2>
+          <button
+            onClick={toggleTheme}
             style={{
               ...themeToggleStyle,
-              backgroundColor: 'transparent',
-              color: currentTheme.text
+              backgroundColor: "transparent",
+              color: currentTheme.text,
             }}
           >
             {darkMode ? "🌞" : "🌙"}
           </button>
         </div>
-        
-        <div style={{
-          display: "flex",
-          gap: "10px",
-          marginBottom: "24px"
-        }}>
-          {["7d", "30d", "90d"].map(range => (
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginBottom: "24px",
+          }}
+        >
+          {["7d", "30d", "90d"].map((range) => (
             <button
               key={range}
               onClick={() => setDateRange(range)}
@@ -121,43 +145,52 @@ export default function ComparativeAnalysis() {
                 borderRadius: "6px",
                 cursor: "pointer",
                 fontWeight: dateRange === range ? "bold" : "normal",
-                backgroundColor: dateRange === range 
-                  ? currentTheme.primary 
-                  : currentTheme.inputBackground,
-                color: dateRange === range 
-                  ? "#FFFFFF" 
-                  : currentTheme.text,
-                border: `1px solid ${dateRange === range 
-                  ? currentTheme.primary 
-                  : currentTheme.inputBorder}`,
-                transition: "all 0.2s ease"
+                backgroundColor:
+                  dateRange === range
+                    ? currentTheme.primary
+                    : currentTheme.inputBackground,
+                color: dateRange === range ? "#FFFFFF" : currentTheme.text,
+                border: `1px solid ${
+                  dateRange === range
+                    ? currentTheme.primary
+                    : currentTheme.inputBorder
+                }`,
+                transition: "all 0.2s ease",
               }}
             >
               Last {range}
             </button>
           ))}
         </div>
-        
+
         {loading ? (
-          <div style={{
-            textAlign: "center",
-            padding: "40px",
-            color: currentTheme.secondary
-          }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px",
+              color: currentTheme.secondary,
+            }}
+          >
             Loading...
           </div>
         ) : (
           <div>
-            <div style={{
-              ...chartContainerStyle,
-              backgroundColor: currentTheme.inputBackground,
-              borderColor: currentTheme.inputBorder
-            }}>
-              <h3 style={{
-                fontSize: "16px",
-                marginBottom: "16px",
-                color: currentTheme.text
-              }}>Performance Over Time</h3>
+            <div
+              style={{
+                ...chartContainerStyle,
+                backgroundColor: currentTheme.inputBackground,
+                borderColor: currentTheme.inputBorder,
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: "16px",
+                  marginBottom: "16px",
+                  color: currentTheme.text,
+                }}
+              >
+                Performance Over Time
+              </h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart
                   data={historicalData}
@@ -168,17 +201,19 @@ export default function ComparativeAnalysis() {
                     bottom: 5,
                   }}
                 >
-                  <XAxis 
-                    dataKey="timestamp" 
+                  <XAxis
+                    dataKey="timestamp"
                     stroke={currentTheme.text}
-                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleDateString()
+                    }
                   />
                   <YAxis stroke={currentTheme.text} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: currentTheme.cardBackground,
                       borderColor: currentTheme.inputBorder,
-                      color: currentTheme.text
+                      color: currentTheme.text,
                     }}
                   />
                   <Legend />
@@ -200,17 +235,23 @@ export default function ComparativeAnalysis() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            
-            <div style={{
-              ...chartContainerStyle,
-              backgroundColor: currentTheme.inputBackground,
-              borderColor: currentTheme.inputBorder
-            }}>
-              <h3 style={{
-                fontSize: "16px",
-                marginBottom: "16px",
-                color: currentTheme.text
-              }}>Error Rate Comparison</h3>
+
+            <div
+              style={{
+                ...chartContainerStyle,
+                backgroundColor: currentTheme.inputBackground,
+                borderColor: currentTheme.inputBorder,
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: "16px",
+                  marginBottom: "16px",
+                  color: currentTheme.text,
+                }}
+              >
+                Error Rate Comparison
+              </h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart
                   data={historicalData}
@@ -221,17 +262,19 @@ export default function ComparativeAnalysis() {
                     bottom: 5,
                   }}
                 >
-                  <XAxis 
-                    dataKey="timestamp" 
+                  <XAxis
+                    dataKey="timestamp"
                     stroke={currentTheme.text}
-                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleDateString()
+                    }
                   />
                   <YAxis stroke={currentTheme.text} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: currentTheme.cardBackground,
                       borderColor: currentTheme.inputBorder,
-                      color: currentTheme.text
+                      color: currentTheme.text,
                     }}
                   />
                   <Legend />
@@ -269,7 +312,7 @@ const containerStyle: React.CSSProperties = {
   width: "100%",
   padding: "20px",
   boxSizing: "border-box",
-  transition: "background-color 0.3s ease"
+  transition: "background-color 0.3s ease",
 };
 
 const cardStyle: React.CSSProperties = {
@@ -277,20 +320,20 @@ const cardStyle: React.CSSProperties = {
   maxWidth: "900px",
   padding: "32px",
   borderRadius: "12px",
-  transition: "all 0.3s ease"
+  transition: "all 0.3s ease",
 };
 
 const headerStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "24px"
+  marginBottom: "24px",
 };
 
 const titleStyle: React.CSSProperties = {
   fontSize: "28px",
   fontWeight: 700,
-  margin: 0
+  margin: 0,
 };
 
 const themeToggleStyle: React.CSSProperties = {
@@ -302,7 +345,7 @@ const themeToggleStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  transition: "all 0.2s ease"
+  transition: "all 0.2s ease",
 };
 
 const chartContainerStyle: React.CSSProperties = {
@@ -310,5 +353,5 @@ const chartContainerStyle: React.CSSProperties = {
   borderRadius: "8px",
   marginBottom: "24px",
   border: "1px solid",
-  transition: "all 0.3s ease"
+  transition: "all 0.3s ease",
 };
