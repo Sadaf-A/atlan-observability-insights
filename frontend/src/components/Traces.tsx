@@ -225,23 +225,60 @@ export default function TraceViewer() {
                             display: "flex",
                             alignItems: "center"
                         }}>
-                                    <div className="grid grid-cols-3 gap-4 p-4">
-                                    {urls && urls.length > 0 ? (
-    urls.map((url: any) => (
-        <div
-            key={url._id}
-            className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
-                selectedUrl === url.baseUrl ? "border-blue-500 bg-blue-100" : "border-gray-300"
-            }`}
-            onClick={() => handleSelectUrl(url.baseUrl)}
-        >
-            <p className="text-sm font-medium text-gray-800">{url.baseUrl}</p>
-        </div>
-    ))
-) : (
-    <p className="text-gray-500 text-sm">No URLs available</p>
-)}
-        </div>
+                                    <div style={{
+    maxHeight: "200px",
+    overflowY: "auto",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "10px",
+    padding: "10px",
+    border: `1px solid ${currentTheme.inputBorder}`,
+    borderRadius: "8px",
+    backgroundColor: currentTheme.inputBackground
+}}>
+    {urls && urls.length > 0 ? (
+        urls.map((url) => (
+            <button
+                key={url._id}
+                style={{
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    border: `1px solid ${selectedUrl === url.baseUrl ? currentTheme.primary : currentTheme.inputBorder}`,
+                    backgroundColor: selectedUrl === url.baseUrl ? 
+                        (darkMode ? "rgba(38, 132, 255, 0.2)" : "rgba(0, 82, 204, 0.1)") : 
+                        currentTheme.inputBackground,
+                    color: currentTheme.text,
+                    cursor: "pointer",
+                    textOverflow: "ellipsis",
+                    maxWidth: "100%",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textAlign: "left",
+                    boxShadow: selectedUrl === url.baseUrl ? 
+                        `0 0 0 1px ${currentTheme.primary}` : 
+                        "none",
+                    transition: "all 0.2s ease"
+                }}
+                onClick={() => {
+                    setSelectedUrl(url.baseUrl);
+                    handleSelectUrl(url.baseUrl);
+                }}
+            >
+                {url.baseUrl}
+            </button>
+        ))
+    ) : (
+        <p style={{ 
+            color: darkMode ? "rgba(244, 245, 247, 0.6)" : "rgba(23, 43, 77, 0.6)",
+            padding: "8px",
+            margin: 0
+        }}>
+            No URLs available
+        </p>
+    )}
+</div>
                             <button 
                                 style={{
                                     display: "flex",
