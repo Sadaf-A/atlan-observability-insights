@@ -1,11 +1,11 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import TopNavigation from "./components/TopNavigation";
-import Dashboard from "./components/Dashboard";
-import TraceViewer from "./components/Traces";
-import ComparativeAnalysis from "./components/ComparativeAnalysis";
-import Login from "./components/Login";
-import Register from "./components/Register";
+import TopNavigation from "./pages/TopNavigation";
+import Dashboard from "./pages/Dashboard";
+import TraceViewer from "./pages/Traces";
+import ComparativeAnalysis from "./pages/ComparativeAnalysis";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const App: React.FC = () => {
   return (

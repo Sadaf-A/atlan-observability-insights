@@ -1,13 +1,24 @@
 const mongoose = require("mongoose");
 
+const endpointSchema = new mongoose.Schema({
+    path: {
+      type: String,
+      required: true,
+    },
+    body: {
+      type: mongoose.Schema.Types.Mixed, 
+      default: null,
+    },
+  });
+
 const urlSchema = new mongoose.Schema({
   baseUrl: { type: String, required: true, unique: true, trim: true },
   endpoints: {
-    GET: [{ type: String }],
-    POST: [{ type: String }],
-    PUT: [{ type: String }],
-    DELETE: [{ type: String }],
-    PATCH: [{ type: String }],
+    GET: [endpointSchema],
+    POST: [endpointSchema],
+    PUT: [endpointSchema],
+    DELETE: [endpointSchema],
+    PATCH: [endpointSchema],
   },
   createdAt: { type: Date, default: Date.now },
 });

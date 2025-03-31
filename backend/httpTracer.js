@@ -6,7 +6,6 @@ async function traceRequest(method, url, data = null) {
   const traceId = uuidv4();
   const spanId = uuidv4();
   const startTime = new Date();
-
   try {
     const response = await axios({
       method,
@@ -14,6 +13,8 @@ async function traceRequest(method, url, data = null) {
       data,
     });
 
+    console.log(response);
+    
     const newTrace = new Trace({
       traceId,
       createdAt: startTime,

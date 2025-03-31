@@ -166,6 +166,7 @@ const metricSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  isDbQuery: { type: Boolean, default: false }
 });
 
 const Metric = mongoose.model("Metric", metricSchema);
@@ -272,24 +273,27 @@ class UrlMonitor {
 
   async checkUrl() {
     if (!this.monitoredUrl || !this.monitoredUrl.endpoints) return;
-
+  
     for (const [method, paths] of Object.entries(this.monitoredUrl.endpoints)) {
-      for (const path of paths) {
+      for (let i = 0; i < paths.length; i++) {
+        const path = paths[i];
         const start = Date.now();
-        const fullUrl = `${this.monitoredUrl.baseUrl}${path}`;
-
+        const fullUrl = `${this.monitoredUrl.baseUrl}${path.path}`;
+  
         requestTracker.incrementCount(method);
-
+  
         try {
           let response;
           if (method === "GET") {
             response = await traceRequest(method, fullUrl);
           } else if (method === "POST") {
-            const postData = { key1: "value1", key2: "value2" };
+            console.log(path.body);
+            const postData = path.body;
             response = await traceRequest(method, fullUrl, postData);
           }
-
+  
           const duration = (Date.now() - start) / 1000;
+          const isDbQuery = response.metrics?.isDbQuery || false;
 
           const metric = new Metric({
             method,
@@ -297,29 +301,52 @@ class UrlMonitor {
             status: response.status,
             latency: duration,
             timestamp: new Date(),
+            isDbQuery: isDbQuery || false,
           });
-
+  
           await metric.save();
-
+  
           const latestMetrics = await Metric.find({ route: fullUrl })
             .sort({ timestamp: -1 })
             .limit(20);
-
+  
+          const dbMetrics = latestMetrics.filter(metric => metric.isDbQuery);
+          const normalMetrics = latestMetrics.filter(metric => !metric.isDbQuery);
+  
+          const avgResponseTime =
+            latestMetrics.reduce((sum, m) => sum + m.latency, 0) /
+            latestMetrics.length;
+  
+          const errorCount = await Metric.countDocuments({
+            route: fullUrl,
+            status: { $gte: 400 },
+          });
+  
+          const totalRequests = await Metric.countDocuments({ route: fullUrl });
+          const errorRate = totalRequests ? errorCount / totalRequests : 0;
+  
+          const performanceMetric = new Performance({
+            timestamp: new Date(),
+            avgResponseTime,
+            errorRate,
+          });
+  
+          await performanceMetric.save();
+  
           broadcast({
-            metrics: latestMetrics,
+            dbMetrics: dbMetrics, 
+            metrics: normalMetrics, 
             requestStats: requestTracker.getStats(),
             resourceMetrics: response.metrics,
           });
-
-          logger.info(
-            `✅ ${method} ${fullUrl} - ${response.status} - ${duration}s`,
-          );
+  
+          logger.info(`✅ ${method} ${fullUrl} - ${response.status} - ${duration}s`);
         } catch (error) {
           const duration = (Date.now() - start) / 1000;
           const status = error.response ? error.response.status : 500;
-
+  
           requestTracker.incrementErrors(method);
-
+  
           const metric = new Metric({
             method,
             route: fullUrl,
@@ -327,28 +354,50 @@ class UrlMonitor {
             latency: duration,
             timestamp: new Date(),
             error: error.message,
+            isDbQuery: false,
           });
-
+  
           await metric.save();
-
+  
           const latestMetrics = await Metric.find({ route: fullUrl })
             .sort({ timestamp: -1 })
             .limit(20);
-
+  
+          const dbMetrics = latestMetrics.filter(metric => metric.isDbQuery);
+          const normalMetrics = latestMetrics.filter(metric => !metric.isDbQuery);
+  
+          const avgResponseTime =
+            latestMetrics.reduce((sum, m) => sum + m.latency, 0) /
+            latestMetrics.length;
+  
+          const errorCount = await Metric.countDocuments({
+            route: fullUrl,
+            status: { $gte: 400 },
+          });
+  
+          const totalRequests = await Metric.countDocuments({ route: fullUrl });
+          const errorRate = totalRequests ? errorCount / totalRequests : 0;
+  
+          const performanceMetric = new Performance({
+            timestamp: new Date(),
+            avgResponseTime,
+            errorRate,
+          });
+  
+          await performanceMetric.save();
+  
           broadcast({
-            metrics: latestMetrics,
+            dbMetrics: dbMetrics,
+            normalMetrics: normalMetrics,
             requestStats: requestTracker.getStats(),
           });
-
-          logger.error(
-            `❌ ${method} ${fullUrl} - ERROR ${status} - ${duration}s`,
-            error,
-          );
+  
+          logger.error(`❌ ${method} ${fullUrl} - ERROR ${status} - ${duration}s`, error);
         }
       }
     }
   }
-
+  
   stopMonitoring() {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
@@ -361,7 +410,6 @@ class UrlMonitor {
 const urlMonitor = new UrlMonitor();
 
 const authMiddleware = (req, res, next) => {
-  console.log(req);
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -447,8 +495,15 @@ app.get("/api/metrics", async (req, res) => {
   const span = tracer.startSpan("Fetch API Metrics");
 
   try {
-    const metrics = await Metric.find().sort({ timestamp: -1 }).limit(100);
-    res.json(metrics);
+    const allMetrics = await Metric.find().sort({ timestamp: -1 }).limit(100);
+
+    const dbMetrics = allMetrics.filter(metric => metric.isDbQuery);
+    const normalMetrics = allMetrics.filter(metric => !metric.isDbQuery);
+
+    res.json({
+        dbMetrics,
+        normalMetrics
+    });
   } catch (error) {
     span.recordException(error);
     res.status(500).json({ error: "Failed to fetch metrics" });
@@ -492,7 +547,6 @@ app.post("/api/set-url", authMiddleware, async (req, res) => {
 
   try {
     const { baseUrl, endpoints } = req.body;
-    console.log(req.user);
     const userId = req.user.userId;
 
     if (!baseUrl || !endpoints) {

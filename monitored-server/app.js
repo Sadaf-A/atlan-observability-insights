@@ -4,37 +4,18 @@ const os = require('os');
 require('dotenv').config();
 const connectDB = require("./db");
 const Data = require("./models/DataModel");
+const metricsMiddleware = require('./middlewares/metrics')
 
 const app = express();
 connectDB();
 app.use(cors());
 app.use(express.json());
-
-app.use((req, res, next) => {
-    const memoryUsage = process.memoryUsage();
-    const cpuLoad = os.loadavg()[0]; 
-
-    res.locals.metrics = {
-        memory: {
-            rss: memoryUsage.rss / 1024 / 1024, 
-            heapTotal: memoryUsage.heapTotal / 1024 / 1024, 
-            heapUsed: memoryUsage.heapUsed / 1024 / 1024,
-            external: memoryUsage.external / 1024 / 1024,
-        },
-        cpu: {
-            loadAvg1min: cpuLoad
-        }
-    };
-
-    next();
-});
+app.use(metricsMiddleware);
 
 app.get("/", async (req, res) => {
     console.log("GET request received");
     try {
-        console.time("DB Query");
         const data = await Data.find(); 
-        console.timeEnd("DB Query");
         
         res.status(200).json({
             message: "GET request received",
