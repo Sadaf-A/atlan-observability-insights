@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
       );
 
       await axios.post(
-        `http://localhost:5000/api/set-url`,
+        `https://atlan-455412.el.r.appspot.com/api/set-url`,
         { baseUrl: inputUrl, endpoints: structuredEndpoints },
         { headers: { Authorization: `Bearer ${userToken}` } },
       );
@@ -269,7 +269,7 @@ const Dashboard: React.FC = () => {
   );
 
   const connectWebSocket = useCallback(() => {
-    const socket = new WebSocket("ws://localhost:8080");
+    const socket = new WebSocket("wss://atlan-455412.el.r.appspot.com");
 
     socket.onopen = () => {
       setIsConnected(true);
@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
 
   const handleStopMonitoring = async () => {
     try {
-      await axios.post(`http://localhost:5000/api/stop-monitoring`);
+      await axios.post(`https://atlan-455412.el.r.appspot.com/api/stop-monitoring`);
 
       setMonitoredUrl("");
       setMetrics([]);

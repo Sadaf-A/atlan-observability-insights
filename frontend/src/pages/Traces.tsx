@@ -85,7 +85,7 @@ const themes = {
 };
 
 export default function TraceViewer() {
-  const [monitoredUrl, setMonitoredUrl] = useState("http://localhost:5000");
+  const [monitoredUrl, setMonitoredUrl] = useState("http://localhost:4000");
   const [traces, setTraces] = useState<Trace[]>([]);
   const [urls, setUrls] = useState<Url[]>();
   const [selectedUrl, setSelectedUrl] = useState<string>("");
@@ -122,7 +122,7 @@ export default function TraceViewer() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/urls", {
+      .get("https://atlan-455412.el.r.appspot.com/api/urls", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
         },
@@ -134,7 +134,7 @@ export default function TraceViewer() {
   const fetchTraces = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get("http://localhost:5000/api/traces", {
+      const { data } = await axios.get("https://atlan-455412.el.r.appspot.com/api/traces", {
         params: { monitoredUrl },
       });
       setTraces(data);
@@ -147,7 +147,7 @@ export default function TraceViewer() {
   const runDiagnosis = async () => {
     setDiagnosis("Running diagnosis...");
     try {
-      const { data } = await axios.post("http://localhost:5000/api/diagnose", {
+      const { data } = await axios.post("https://atlan-455412.el.r.appspot.com/api/diagnose", {
         monitoredUrl,
       });
       setDiagnosis(data.aiResponse);
