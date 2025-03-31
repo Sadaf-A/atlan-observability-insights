@@ -45,7 +45,6 @@ interface ResourceMetrics {
   cpu: {
     loadAvg1min: number;
   };
-  isDbQuery: boolean;
 }
 
 interface WebSocketMessage {
@@ -61,7 +60,6 @@ interface Endpoint {
   body?: any;
 }
 
-// Color themes inspired by Atlan
 const themes = {
   light: {
     background: "#FFFFFF",
@@ -115,7 +113,7 @@ const Dashboard: React.FC = () => {
   );
   const [inputUrl, setInputUrl] = useState<string>("");
   const [endpoints, setEndpoints] = useState<Endpoint[]>([
-    { method: "GET", path: "", body: "" }, 
+    { method: "GET", path: "", body: "" },
   ]);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -151,7 +149,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleAddEndpoint = () => {
-    setEndpoints([...endpoints, { method: "GET", path: "", body: "" }]); 
+    setEndpoints([...endpoints, { method: "GET", path: "", body: "" }]);
   };
 
   const handleSetUrl = async () => {
@@ -174,9 +172,9 @@ const Dashboard: React.FC = () => {
         const endpointDetails: { path: string; body?: string } = { path };
         if (method === "POST" && body) {
           try {
-            endpointDetails.body = JSON.parse(body); 
+            endpointDetails.body = JSON.parse(body);
           } catch (e) {
-            endpointDetails.body = body; 
+            endpointDetails.body = body;
           }
         }
         structuredEndpoints[method as keyof typeof structuredEndpoints]?.push(
@@ -189,16 +187,13 @@ const Dashboard: React.FC = () => {
         JSON.stringify({ baseUrl: inputUrl, endpoints: structuredEndpoints }),
       );
 
-      if (structuredEndpoints.GET.length > 0) {
-        structuredEndpoints.GET.pop();
-      }
-
       await axios.post(
         `http://localhost:5000/api/set-url`,
         { baseUrl: inputUrl, endpoints: structuredEndpoints },
         { headers: { Authorization: `Bearer ${userToken}` } },
       );
 
+      setMonitoredUrl(inputUrl);
       setIsMonitoring(true);
       toast.success(`Started Monitoring ${inputUrl}`);
     } catch (error: any) {
@@ -284,8 +279,6 @@ const Dashboard: React.FC = () => {
       try {
         const data: WebSocketMessage = JSON.parse(event.data);
 
-        console.log(data);
-
         if (data.metrics && Array.isArray(data.metrics)) {
           setMetrics((prevMetrics) => [...data.metrics]);
         }
@@ -313,7 +306,6 @@ const Dashboard: React.FC = () => {
 
     socket.onclose = () => {
       setIsConnected(false);
-
       setTimeout(connectWebSocket, 3000);
     };
 
@@ -322,7 +314,6 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const socket = connectWebSocket();
-
     return () => socket.close();
   }, [connectWebSocket]);
 
@@ -332,6 +323,7 @@ const Dashboard: React.FC = () => {
 
       setMonitoredUrl("");
       setMetrics([]);
+      setDbMetrics([]);
       setRequestStats({
         GET: { count: 0, errors: 0 },
         POST: { count: 0, errors: 0 },
@@ -477,98 +469,97 @@ const Dashboard: React.FC = () => {
             <div
               style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
-{endpoints.map((endpoint, index) => (
-  <div
-    key={index}
-    style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-  >
-    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-      <select
-        value={endpoint.method}
-        onChange={(e) =>
-          handleEndpointChange(index, "method", e.target.value)
-        }
-        style={{
-          padding: "12px",
-          borderRadius: "8px",
-          border: `1px solid ${currentTheme.inputBorder}`,
-          backgroundColor: currentTheme.inputBackground,
-          color: currentTheme.text,
-          outline: "none",
-          minWidth: "120px",
-          cursor: "pointer",
-        }}
-      >
-        <option value="GET">GET</option>
-        <option value="POST">POST</option>
-        <option value="PUT">PUT</option>
-        <option value="DELETE">DELETE</option>
-        <option value="PATCH">PATCH</option>
-      </select>
+              {endpoints.map((endpoint, index) => (
+                <div
+                  key={index}
+                  style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+                >
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                    <select
+                      value={endpoint.method}
+                      onChange={(e) =>
+                        handleEndpointChange(index, "method", e.target.value)
+                      }
+                      style={{
+                        padding: "12px",
+                        borderRadius: "8px",
+                        border: `1px solid ${currentTheme.inputBorder}`,
+                        backgroundColor: currentTheme.inputBackground,
+                        color: currentTheme.text,
+                        outline: "none",
+                        minWidth: "120px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="DELETE">DELETE</option>
+                      <option value="PATCH">PATCH</option>
+                    </select>
 
-      <input
-        type="text"
-        style={{
-          flex: 1,
-          padding: "12px 16px",
-          fontSize: "14px",
-          borderRadius: "8px",
-          border: `1px solid ${currentTheme.inputBorder}`,
-          backgroundColor: currentTheme.inputBackground,
-          color: currentTheme.text,
-          outline: "none",
-          transition: "all 0.2s ease",
-        }}
-        value={endpoint.path}
-        onChange={(e) =>
-          handleEndpointChange(index, "path", e.target.value)
-        }
-        placeholder="Enter endpoint path (e.g., /users, /orders)"
-      />
+                    <input
+                      type="text"
+                      style={{
+                        flex: 1,
+                        padding: "12px 16px",
+                        fontSize: "14px",
+                        borderRadius: "8px",
+                        border: `1px solid ${currentTheme.inputBorder}`,
+                        backgroundColor: currentTheme.inputBackground,
+                        color: currentTheme.text,
+                        outline: "none",
+                        transition: "all 0.2s ease",
+                      }}
+                      value={endpoint.path}
+                      onChange={(e) =>
+                        handleEndpointChange(index, "path", e.target.value)
+                      }
+                      placeholder="Enter endpoint path (e.g., /users, /orders)"
+                    />
 
-      {index === endpoints.length - 1 && (
-        <button
-          onClick={handleAddEndpoint}
-          style={{
-            padding: "12px 16px",
-            borderRadius: "8px",
-            backgroundColor: currentTheme.secondary,
-            color: "#FFFFFF",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 600,
-            transition: "all 0.2s ease",
-            whiteSpace: "nowrap",
-          }}
-        >
-          + Add Endpoint
-        </button>
-      )}
-    </div>
+                    {index === endpoints.length - 1 && (
+                      <button
+                        onClick={handleAddEndpoint}
+                        style={{
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          backgroundColor: currentTheme.secondary,
+                          color: "#FFFFFF",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          transition: "all 0.2s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        + Add Endpoint
+                      </button>
+                    )}
+                  </div>
 
-    {endpoint.method === "POST" && (
-      <textarea
-        style={{
-          width: "100%",
-          minHeight: "100px",
-          padding: "12px",
-          fontSize: "14px",
-          borderRadius: "8px",
-          border: `1px solid ${currentTheme.inputBorder}`,
-          backgroundColor: currentTheme.inputBackground,
-          color: currentTheme.text,
-          outline: "none",
-          resize: "vertical",
-        }}
-        placeholder='Enter JSON body (e.g., {"key": "value"})'
-        value={endpoint.body || ""}
-        onChange={(e) => handleEndpointChange(index, "body", e.target.value)}
-      />
-    )}
-  </div>
-))}
-
+                  {endpoint.method === "POST" && (
+                    <textarea
+                      style={{
+                        width: "100%",
+                        minHeight: "100px",
+                        padding: "12px",
+                        fontSize: "14px",
+                        borderRadius: "8px",
+                        border: `1px solid ${currentTheme.inputBorder}`,
+                        backgroundColor: currentTheme.inputBackground,
+                        color: currentTheme.text,
+                        outline: "none",
+                        resize: "vertical",
+                      }}
+                      placeholder='Enter JSON body (e.g., {"key": "value"})'
+                      value={endpoint.body || ""}
+                      onChange={(e) => handleEndpointChange(index, "body", e.target.value)}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -640,18 +631,17 @@ const Dashboard: React.FC = () => {
                   </h3>
                   <h4
                     style={{
-                      fontSize: "18px",
+                      fontSize: "16px",
                       fontWeight: 600,
-                      marginBottom: "16px",
+                      marginBottom: "12px",
                       color: currentTheme.text,
                     }}
                   >
-                    Database Latency 
+                    Database Latency
                   </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={dbLatencyChartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <CartesianGrid
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={dbLatencyChartData}>
+                      <CartesianGrid
                         strokeDasharray="3 3"
                         stroke={
                           darkMode
@@ -701,18 +691,19 @@ const Dashboard: React.FC = () => {
                         dot={false}
                       />
                     </LineChart>
-        </ResponsiveContainer>
-        <h4
+                  </ResponsiveContainer>
+                  <h4
                     style={{
-                      fontSize: "18px",
+                      fontSize: "16px",
                       fontWeight: 600,
-                      marginBottom: "16px",
+                      marginTop: "24px",
+                      marginBottom: "12px",
                       color: currentTheme.text,
                     }}
                   >
-                    Non-Database Latency 
+                    Non-Database Latency
                   </h4>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={latencyChartData}>
                       <CartesianGrid
                         strokeDasharray="3 3"
