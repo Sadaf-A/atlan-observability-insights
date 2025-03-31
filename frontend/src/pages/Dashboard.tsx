@@ -134,25 +134,6 @@ const Dashboard: React.FC = () => {
   const currentTheme = darkMode ? themes.dark : themes.light;
 
   useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const response = await axios.get("/api/metrics");
-        const allMetrics: Metric[] = response.data;
-
-        const dbQueryMetrics = allMetrics.filter((metric) => metric.isDbQuery);
-        const nonDbQueryMetrics = allMetrics.filter((metric) => !metric.isDbQuery);
-
-        setDbMetrics(dbQueryMetrics);
-        setMetrics(nonDbQueryMetrics);
-      } catch (error) {
-        console.error("Error fetching metrics:", error);
-      }
-    };
-
-    fetchMetrics();
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
@@ -657,16 +638,80 @@ const Dashboard: React.FC = () => {
                   >
                     Latency Over Time
                   </h3>
+                  <h4
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 600,
+                      marginBottom: "16px",
+                      color: currentTheme.text,
+                    }}
+                  >
+                    Database Latency 
+                  </h4>
                   <ResponsiveContainer width="100%" height={300}>
           <LineChart data={dbLatencyChartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="timestamp" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="latency" stroke="#8884d8" activeDot={{ r: 8 }} />
-          </LineChart>
+            <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={
+                          darkMode
+                            ? "rgba(244, 245, 247, 0.2)"
+                            : "rgba(23, 43, 77, 0.2)"
+                        }
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke={
+                          darkMode
+                            ? "rgba(244, 245, 247, 0.6)"
+                            : "rgba(23, 43, 77, 0.6)"
+                        }
+                      />
+                      <YAxis
+                        stroke={
+                          darkMode
+                            ? "rgba(244, 245, 247, 0.6)"
+                            : "rgba(23, 43, 77, 0.6)"
+                        }
+                        label={{
+                          value: "Latency (ms)",
+                          angle: -90,
+                          fill: currentTheme.text,
+                        }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: currentTheme.cardBackground,
+                          borderColor: currentTheme.tableBorder,
+                          color: currentTheme.text,
+                          fontSize: "12px",
+                          borderRadius: "6px",
+                        }}
+                        itemStyle={{ color: currentTheme.text }}
+                        labelStyle={{
+                          color: currentTheme.text,
+                          fontWeight: 600,
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="latency"
+                        stroke={currentTheme.chartLine}
+                        dot={false}
+                      />
+                    </LineChart>
         </ResponsiveContainer>
+        <h4
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 600,
+                      marginBottom: "16px",
+                      color: currentTheme.text,
+                    }}
+                  >
+                    Non-Database Latency 
+                  </h4>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={latencyChartData}>
                       <CartesianGrid
