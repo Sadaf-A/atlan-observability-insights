@@ -184,9 +184,7 @@ const Dashboard: React.FC = () => {
       );
 
       setIsMonitoring(true);
-      toast.success("Monitoring started!");
     } catch (error) {
-      toast.error("Failed to start monitoring.");
       console.error(error);
     }
   };
@@ -251,7 +249,6 @@ const Dashboard: React.FC = () => {
     const socket = new WebSocket("ws://localhost:8080");
 
     socket.onopen = () => {
-      toast.success("Connected to WebSocket");
       setIsConnected(true);
     };
 
@@ -282,7 +279,6 @@ const Dashboard: React.FC = () => {
     };
 
     socket.onclose = () => {
-      toast.warn("WebSocket disconnected. Attempting to reconnect...");
       setIsConnected(false);
 
       setTimeout(connectWebSocket, 3000);
