@@ -187,6 +187,8 @@ const Dashboard: React.FC = () => {
         JSON.stringify({ baseUrl: inputUrl, endpoints: structuredEndpoints }),
       );
 
+      structuredEndpoints.GET.pop();
+
       await axios.post(
         `https://atlan-455412.el.r.appspot.com/api/set-url`,
         { baseUrl: inputUrl, endpoints: structuredEndpoints },
