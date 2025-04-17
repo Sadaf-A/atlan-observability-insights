@@ -190,7 +190,7 @@ const Dashboard: React.FC = () => {
       structuredEndpoints.GET.pop();
 
       await axios.post(
-        `https://atlan-455412.el.r.appspot.com/api/set-url`,
+        `https://atlan345678.as.r.appspot.com/api/set-url`,
         { baseUrl: inputUrl, endpoints: structuredEndpoints },
         { headers: { Authorization: `Bearer ${userToken}` } },
       );
@@ -271,7 +271,7 @@ const Dashboard: React.FC = () => {
   );
 
   const connectWebSocket = useCallback(() => {
-    const socket = new WebSocket("wss://atlan-455412.el.r.appspot.com");
+    const socket = new WebSocket("wss://atlan345678.as.r.appspot.com");
 
     socket.onopen = () => {
       setIsConnected(true);
@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
 
   const handleStopMonitoring = async () => {
     try {
-      await axios.post(`https://atlan-455412.el.r.appspot.com/api/stop-monitoring`);
+      await axios.post(`https://atlan345678.as.r.appspot.com/api/stop-monitoring`);
 
       setMonitoredUrl("");
       setMetrics([]);
