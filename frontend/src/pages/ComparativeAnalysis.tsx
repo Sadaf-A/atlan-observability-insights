@@ -74,7 +74,7 @@ export default function ComparativeAnalysis() {
     setLoading(true);
     try {
       const { data } = await axios.get(
-        "https://atlan-455412.el.r.appspot.com/api/performance",
+        "https://atlan345678.as.r.appspot.com/api/performance",
         {
           params: { range: dateRange },
         },
